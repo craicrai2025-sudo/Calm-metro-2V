@@ -123,7 +123,7 @@
 
     <!-- Imagen central -->
     <div class="center">
-      <img id="estadoImg" src="imagenes/verde.png" alt="Estado de ruido">
+      <img id="estadoImg" src="Imagenes/verde.png" alt="Estado de ruido">
     </div>
   </div>
 
@@ -203,13 +203,13 @@
           }
 
           if (volume <= 40) {
-            if (!estadoImg.src.includes('verde.png')) estadoImg.src = 'imagenes/verde.png';
+            if (!estadoImg.src.includes('verde.png')) estadoImg.src = 'Imagenes/verde.png';
             stopBlink();
           } else if (volume <= 70) {
-            if (!estadoImg.src.includes('amarillo.png')) estadoImg.src = 'imagenes/amarillo.png';
+            if (!estadoImg.src.includes('amarillo.png')) estadoImg.src = 'Imagenes/amarillo.png';
             stopBlink();
           } else {
-            if (!estadoImg.src.includes('rojo.png')) estadoImg.src = 'imagenes/rojo.png';
+            if (!estadoImg.src.includes('rojo.png')) estadoImg.src = 'Imagenes/rojo.png';
             startBlink();
           }
 

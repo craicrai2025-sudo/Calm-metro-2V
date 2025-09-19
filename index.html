@@ -34,25 +34,25 @@
       margin: 10px 0;
     }
 
-   .hero h2 {
-  font-size: clamp(4rem, 8vw, 5.2rem); /* antes 2rem, 4vw, 2.6rem */
-  font-weight: 800;
-  font-family: 'Liberation Sans', Arial, sans-serif;
-  color: #fff;
-  -webkit-text-stroke: 2px #000;
-  text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
-  margin: 8px 0;
-}
+    .hero h2 {
+      font-size: clamp(4rem, 8vw, 5.2rem);
+      font-weight: 800;
+      font-family: 'Liberation Sans', Arial, sans-serif;
+      color: #fff;
+      -webkit-text-stroke: 2px #000;
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+      margin: 8px 0;
+    }
 
-.hero p {
-  font-size: clamp(2.8rem, 6vw, 3.6rem); /* antes 1.4rem, 3vw, 1.8rem */
-  font-weight: 600;
-  font-family: 'Liberation Sans', Arial, sans-serif;
-  color: #fff;
-  -webkit-text-stroke: 1.5px #000;
-  text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
-  margin: 6px 0;
-}
+    .hero p {
+      font-size: clamp(2.8rem, 6vw, 3.6rem);
+      font-weight: 600;
+      font-family: 'Liberation Sans', Arial, sans-serif;
+      color: #fff;
+      -webkit-text-stroke: 1.5px #000;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+      margin: 6px 0;
+    }
 
     /* ====== LAYOUT principal ====== */
     .container {
@@ -66,7 +66,7 @@
       min-height: 620px;
     }
 
-    /* Barra de sonido fija a la izquierda */
+    /* Barra de sonido fija a la derecha */
     .bar-container {
       position: absolute;
       right: 300px;
@@ -103,6 +103,29 @@
       height: auto;
       user-select: none;
     }
+
+    /* ====== CARRUSEL DE IMÁGENES ====== */
+    .carrusel {
+      position: absolute;
+      left: 300px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 300px;
+      height: 300px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+
+    .carrusel img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
@@ -116,6 +139,11 @@
   </div>
 
   <div class="container">
+    <!-- Carrusel de imágenes -->
+    <div class="carrusel">
+      <img id="carruselImg" src="CanvaImgs/img1.png" alt="Carrusel">
+    </div>
+
     <!-- Barra de sonido -->
     <div class="bar-container">
       <div id="bar" class="bar"></div>
@@ -128,6 +156,7 @@
   </div>
 
   <script>
+    /* ==== FUNCIONES AUXILIARES ==== */
     function lerp(a, b, t) { return a + (b - a) * t; }
     function mixRGB(c1, c2, t) {
       return [
@@ -162,6 +191,7 @@
       }
     }
 
+    /* ==== SEMÁFORO ==== */
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -223,6 +253,22 @@
         console.error(err);
       }
     })();
+
+    /* ==== CARRUSEL DE IMÁGENES ==== */
+    const imagenesCarpeta = [
+      "CanvaImgs/img1.png",
+      "CanvaImgs/img2.png",
+      "CanvaImgs/img3.png"
+      // 👉 solo añade o quita nombres aquí según lo que tengas en GitHub
+    ];
+
+    let idx = 0;
+    const carruselImg = document.getElementById("carruselImg");
+
+    setInterval(() => {
+      idx = (idx + 1) % imagenesCarpeta.length;
+      carruselImg.src = imagenesCarpeta[idx];
+    }, 30000); // cada 30 segundos
   </script>
 </body>
 </html>

@@ -2,136 +2,263 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Semáforo de Ruido</title>
   <style>
+    :root{
+      --base-blue: #1B4079; /* tono azul más oscuro */
+      --mid-blue: #4D7C8A;  /* tono azul medio */
+    }
+
     body {
-      font-family: sans-serif;
-      text-align: center;
-      background-color: #4D7C8A;
-      color: white;
-      height: 100vh;
       margin: 0;
+      font-family: 'Liberation Sans', Arial, sans-serif;
+      text-align: center;
+      background: linear-gradient(to bottom right, var(--mid-blue), var(--base-blue));
+      transition: background 0.25s ease;
+    }
+
+    /* ====== HERO (títulos) ====== */
+    .hero-wrap{
+      display:flex; justify-content:center; margin: 12px 0 6px;
+      padding: 8px 16px;
+    }
+    .hero{ text-align:center; }
+
+    .hero h1 {
+      font-size: clamp(3.2rem, 6vw, 4.2rem);
+      font-weight: 900;
+      color: #fff;
+      -webkit-text-stroke: 3px #000;
+      text-shadow: 3px 3px 8px rgba(0,0,0,0.7);
+      margin: 10px 0;
+    }
+
+    .hero h2 {
+      font-size: clamp(4rem, 8vw, 5.2rem);
+      font-weight: 800;
+      color: #fff;
+      -webkit-text-stroke: 2px #000;
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+      margin: 8px 0;
+    }
+
+    .hero p {
+      font-size: clamp(2.8rem, 6vw, 3.6rem);
+      font-weight: 600;
+      color: #fff;
+      -webkit-text-stroke: 1.5px #000;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+      margin: 6px 0;
+    }
+
+    /* ====== LAYOUT principal ====== */
+    .container {
+      position: relative;
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 90%;
+      margin: 0 auto 40px auto;
+      gap: 32px;
+      min-height: 620px;
+    }
+
+    .bar-container {
+      position: absolute;
+      right: 200px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 90px;
+      height: 700px;
+      background: #eeeeee;
+      border-radius: 22px;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15) inset;
+    }
+
+    .bar {
+      width: 100%;
+      height: 0%;
+      background: #00c853;
+      transition: height 0.10s linear, background 0.10s linear;
+    }
+
+    .center{
+      flex: 0 1 100%;
+      width: 100%;
+      display: flex;
       justify-content: center;
       align-items: center;
-      transition: background-color 0.3s ease;
+    }
+    #estadoImg {
+      width: 600px;
+      max-width: 300vw;
+      height: auto;
+      user-select: none;
     }
 
-    #bar {
-      width: 100px;
-      height: 20px;
-      background-color: green;
-      margin-top: 20px;
-      border-radius: 10px;
-      transition: height 0.3s, background-color 0.3s;
+    .carrusel {
+      position: absolute;
+      left: 100px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 500px;
+      height: 800px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
     }
 
-    #light {
-      width: 120px;
-      height: 120px;
-      margin-top: 30px;
-    }
-
-    #carousel {
-      margin-top: 20px;
-      width: 200px;
-      height: 200px;
+    .carrusel img {
+      width: 100%;
+      height: 100%;
       object-fit: contain;
     }
   </style>
 </head>
 <body>
-  <h1>Semáforo de Ruido</h1>
-  <div id="bar"></div>
-  <img id="light" src="verde.png" alt="Semáforo" />
-  <img id="carousel" src="img1.png" alt="Carrusel" />
+  <div class="hero-wrap">
+    <div class="hero" id="hero">
+      <h1>Bienvenidas y bienvenidos al CRAI UR</h1>
+      <h2>Calmómetro</h2>
+      <p>Bájale al ruido, súbele a la concentración</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="carrusel">
+      <img id="carruselImg" src="CanvaImgs/img1.png" alt="Carrusel">
+    </div>
+
+    <div class="bar-container">
+      <div id="bar" class="bar"></div>
+    </div>
+
+    <div class="center">
+      <img id="estadoImg" src="Imagenes/verde.png" alt="Estado de ruido">
+    </div>
+  </div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const barEl = document.getElementById('bar');
-      const lightEl = document.getElementById('light');
-      const carouselEl = document.getElementById('carousel');
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function mixRGB(c1, c2, t) {
+      return [
+        Math.round(lerp(c1[0], c2[0], t)),
+        Math.round(lerp(c1[1], c2[1], t)),
+        Math.round(lerp(c1[2], c2[2], t)),
+      ];
+    }
+    function rgbStr([r,g,b]) { return `rgb(${r}, ${g}, ${b})`; }
 
-      if (!barEl || !lightEl || !carouselEl) {
-        alert("Error: faltan elementos en el HTML (verifica los IDs).");
-        return;
+    const GREEN  = [0, 255, 0];
+    const YELLOW = [255, 255, 0];
+    const RED    = [255, 0, 0];
+    const MID_BLUE = [77, 124, 138];  // #4D7C8A
+    const BASE_BLUE = [27, 64, 121];  // #1B4079
+
+    let blinkInterval = null;
+    function startBlink() {
+      if (blinkInterval) return;
+      let toggle = false;
+      blinkInterval = setInterval(() => {
+        document.body.style.background = toggle 
+          ? 'black' 
+          : 'linear-gradient(to bottom right, red, darkred)';
+        toggle = !toggle;
+      }, 300);
+    }
+    function stopBlink() {
+      if (blinkInterval) {
+        clearInterval(blinkInterval);
+        blinkInterval = null;
       }
+    }
 
-      // Colores base
-      const BASE_BLUE = "#4D7C8A";
-      const DARK_BLUE = "#1B4079";
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioCtx();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
 
-      // Función de mezcla de colores
-      function mixRGB(color1, color2, factor) {
-        const c1 = color1.match(/\w\w/g).map(x => parseInt(x, 16));
-        const c2 = color2.match(/\w\w/g).map(x => parseInt(x, 16));
-        const mixed = c1.map((v, i) => Math.round(v + (c2[i] - v) * factor));
-        return `#${mixed.map(x => x.toString(16).padStart(2, '0')).join('')}`;
-      }
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const barEl = document.getElementById('bar');
+        const estadoImg = document.getElementById('estadoImg');
 
-      // Acceso al micrófono
-      async function initMic() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          const audioContext = new AudioContext();
-          const source = audioContext.createMediaStreamSource(stream);
-          const analyser = audioContext.createAnalyser();
-          analyser.fftSize = 512;
-          source.connect(analyser);
+        function frame() {
+          analyser.getByteFrequencyData(dataArray);
 
-          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const avg = sum / dataArray.length;
 
-          function update() {
-            analyser.getByteFrequencyData(dataArray);
-            const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
-            const normalized = Math.min(volume / 128, 1);
+          const sensitivity = 2.2;
+          const volume = Math.min(100, (avg / 255) * 100 * sensitivity);
 
-            // Fondo dinámico
-            document.body.style.backgroundColor = mixRGB(BASE_BLUE, DARK_BLUE, normalized);
+          barEl.style.height = volume + '%';
 
-            // Actualizar barra
-            const height = 20 + normalized * 100;
-            barEl.style.height = `${height}px`;
+          let color;
+          if (volume <= 50) {
+            color = mixRGB(GREEN, YELLOW, volume / 50);
+          } else {
+            color = mixRGB(YELLOW, RED, (volume - 50) / 50);
+          }
+          const colorStr = rgbStr(color);
+          barEl.style.background = colorStr;
 
-            // Cambiar color del semáforo
-            if (normalized < 0.3) {
-              barEl.style.backgroundColor = "green";
-              lightEl.src = "verde.png";
-            } else if (normalized < 0.6) {
-              barEl.style.backgroundColor = "yellow";
-              lightEl.src = "amarillo.png";
-            } else {
-              barEl.style.backgroundColor = "red";
-              lightEl.src = "rojo.png";
-            }
-
-            requestAnimationFrame(update);
+          if (!blinkInterval) {
+            // Fondo varía de azul medio a azul oscuro según el volumen
+            const bgMix = mixRGB(MID_BLUE, BASE_BLUE, volume / 100);
+            const bgColor = rgbStr(bgMix);
+            document.body.style.background =
+              `linear-gradient(to bottom right, ${bgColor}, #1B4079)`;
           }
 
-          update();
-        } catch (err) {
-          alert(
-            `Error accediendo al micrófono: ${err.name} - ${err.message}\n\n` +
-            `📋 Revisa:\n` +
-            `1️⃣ Que uses HTTPS\n` +
-            `2️⃣ Que el micrófono esté permitido (candado en la URL)\n` +
-            `3️⃣ Que no esté ocupado por otro programa`
-          );
+          if (volume <= 40) {
+            if (!estadoImg.src.includes('verde.png')) estadoImg.src = 'Imagenes/verde.png';
+            stopBlink();
+          } else if (volume <= 70) {
+            if (!estadoImg.src.includes('amarillo.png')) estadoImg.src = 'Imagenes/amarillo.png';
+            stopBlink();
+          } else {
+            if (!estadoImg.src.includes('rojo.png')) estadoImg.src = 'Imagenes/rojo.png';
+            startBlink();
+          }
+
+          requestAnimationFrame(frame);
         }
+
+        frame();
+      } catch (err) {
+        alert('Error accediendo al micrófono: ' + err.name + ' - ' + err.message +
+              '\n\n🔧 Revisa:\n1. Que uses HTTPS\n2. Que el micrófono esté permitido (candado en la URL)\n3. Que no esté ocupado por otro programa.');
+        console.error(err);
       }
+    })();
 
-      initMic();
+    const imagenesCarpeta = [
+      "CanvaImgs/img1.png",
+      "CanvaImgs/img2.png",
+      "CanvaImgs/img3.png"
+    ];
 
-      // Carrusel de imágenes
-      const images = ["img1.png", "img2.png", "img3.png"];
-      let index = 0;
-      setInterval(() => {
-        index = (index + 1) % images.length;
-        carouselEl.src = images[index];
-      }, 30000);
-    });
+    let idx = 0;
+    const carruselImg = document.getElementById("carruselImg");
+
+    setInterval(() => {
+      idx = (idx + 1) % imagenesCarpeta.length;
+      carruselImg.src = imagenesCarpeta[idx];
+    }, 30000);
   </script>
 </body>
 </html>

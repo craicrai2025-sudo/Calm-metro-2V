@@ -92,11 +92,11 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      transform: translateX(40px); /* 🔹 Mueve un poco a la derecha */
+      transform: translateX(40px);
     }
 
     #estadoImg {
-      width: 630px; /* 🔹 5% más grande */
+      width: 630px;
       max-width: 300vw;
       height: auto;
       user-select: none;
@@ -113,22 +113,30 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: transparent; /* 🔹 fondo transparente */
+      background: transparent !important;
       border-radius: 16px;
       overflow: hidden;
-      transition: box-shadow 0.3s ease, background 0.3s ease;
+      box-shadow: none !important;
+      transition: none;
     }
 
-    /* 🔹 Imagen del carrusel con efecto "Revelar" */
+    .carrusel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: transparent !important;
+    }
+
     .carrusel img {
       position: absolute;
       width: 100%;
       height: 100%;
       object-fit: contain;
-      background: transparent;
+      background-color: transparent !important;
       opacity: 0;
       clip-path: polygon(100% 100%, 100% 100%, 100% 100%, 100% 100%);
       transition: opacity 0.4s ease-in-out;
+      z-index: 1;
     }
 
     .carrusel img.active {
@@ -149,7 +157,6 @@
       }
     }
 
-    /* 🔹 Si la imagen tiene transparencia, sin borde ni sombra */
     .carrusel.transparent {
       background: transparent !important;
       box-shadow: none !important;

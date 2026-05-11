@@ -1,325 +1,227 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Semáforo de Ruido</title>
-  <style>
-    :root{
-      --base-blue: #1B4079;
-      --mid-blue: #4D7C8A;
+<script>
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function mixRGB(c1, c2, t) {
+    return [
+      Math.round(lerp(c1[0], c2[0], t)),
+      Math.round(lerp(c1[1], c2[1], t)),
+      Math.round(lerp(c1[2], c2[2], t)),
+    ];
+  }
+
+  function rgbStr([r, g, b]) {
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  const GREEN = [0, 255, 0];
+  const YELLOW = [255, 255, 0];
+  const RED = [255, 0, 0];
+  const MID_BLUE = [77, 124, 138];
+  const BASE_BLUE = [27, 64, 121];
+
+  let blinkInterval = null;
+
+  function startBlink() {
+
+    if (blinkInterval) return;
+
+    let toggle = false;
+
+    blinkInterval = setInterval(() => {
+
+      document.body.style.background = toggle
+        ? 'black'
+        : 'linear-gradient(to bottom right, red, darkred)';
+
+      toggle = !toggle;
+
+    }, 300);
+  }
+
+  function stopBlink() {
+
+    if (blinkInterval) {
+
+      clearInterval(blinkInterval);
+
+      blinkInterval = null;
     }
+  }
 
-    body {
-      margin: 0;
-      font-family: 'Liberation Sans', Arial, sans-serif;
-      text-align: center;
-      background: linear-gradient(to bottom right, var(--mid-blue), var(--base-blue));
-      transition: background 0.25s ease;
-    }
+  /* =========================
+     MICRÓFONO Y SEMÁFORO
+  ========================== */
 
-    /* ====== HERO ====== */
-    .hero-wrap{
-      display:flex; justify-content:center; margin: 12px 0 6px;
-      padding: 8px 16px;
-    }
-    .hero{ text-align:center; }
+  (async () => {
 
-    .hero h1 {
-      font-size: clamp(3.2rem, 6vw, 4.2rem);
-      font-weight: 900;
-      color: #fff;
-      -webkit-text-stroke: 3px #000;
-      text-shadow: 3px 3px 8px rgba(0,0,0,0.7);
-      margin: 10px 0;
-    }
+    try {
 
-    .hero h2 {
-      font-size: clamp(4rem, 8vw, 5.2rem);
-      font-weight: 800;
-      color: #fff;
-      -webkit-text-stroke: 2px #000;
-      text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
-      margin: 8px 0;
-    }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true
+      });
 
-    .hero p {
-      font-size: clamp(2.8rem, 6vw, 3.6rem);
-      font-weight: 600;
-      color: #fff;
-      -webkit-text-stroke: 1.5px #000;
-      text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
-      margin: 6px 0;
-    }
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
 
-    /* ====== LAYOUT ====== */
-    .container {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 90%;
-      margin: 0 auto 40px auto;
-      gap: 32px;
-      min-height: 620px;
-    }
+      const audioContext = new AudioCtx();
 
-    .bar-container {
-      position: absolute;
-      right: 200px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 90px;
-      height: 700px;
-      background: #eeeeee;
-      border-radius: 22px;
-      overflow: hidden;
-      display: flex;
-      align-items: flex-end;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.15) inset;
-    }
+      const source = audioContext.createMediaStreamSource(stream);
 
-    .bar {
-      width: 100%;
-      height: 0%;
-      background: #00c853;
-      transition: height 0.10s linear, background 0.10s linear;
-    }
+      const analyser = audioContext.createAnalyser();
 
-    .center{
-      flex: 0 1 100%;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      transform: translateX(40px);
-    }
+      analyser.fftSize = 256;
 
-    #estadoImg {
-      width: 630px;
-      max-width: 300vw;
-      height: auto;
-      user-select: none;
-    }
+      source.connect(analyser);
 
-    /* ====== CARRUSEL ====== */
-    .carrusel {
-      position: absolute;
-      left: 200px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 650px;
-      height: 950px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: transparent !important;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: none !important;
-      transition: none;
-    }
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-    .carrusel::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: transparent !important;
-    }
+      const barEl = document.getElementById('bar');
 
-    .carrusel img {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background-color: transparent !important;
-      opacity: 0;
-      clip-path: polygon(100% 100%, 100% 100%, 100% 100%, 100% 100%);
-      transition: opacity 0.4s ease-in-out;
-      z-index: 1;
-    }
+      const estadoImg = document.getElementById('estadoImg');
 
-    .carrusel img.active {
-      animation: revealPage 1.2s ease forwards;
-    }
+      function frame() {
 
-    @keyframes revealPage {
-      0% {
-        clip-path: polygon(100% 100%, 100% 100%, 100% 100%, 100% 100%);
-        opacity: 0;
-      }
-      40% {
-        opacity: 1;
-      }
-      100% {
-        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-        opacity: 1;
-      }
-    }
+        analyser.getByteFrequencyData(dataArray);
 
-    .carrusel.transparent {
-      background: transparent !important;
-      box-shadow: none !important;
-    }
-  </style>
-</head>
-<body>
-  <div class="hero-wrap">
-    <div class="hero" id="hero">
-      <h1>Bienvenidas y bienvenidos al CRAI UR</h1>
-      <h2>Calmómetro</h2>
-      <p>Bájale al ruido, súbele a la concentración</p>
-    </div>
-  </div>
+        let sum = 0;
 
-  <div class="container">
-    <div class="carrusel" id="carruselBox">
-      <img id="img1" src="CanvaImgs/img1.png" class="active" alt="Carrusel 1">
-      <img id="img2" src="CanvaImgs/img2.png" alt="Carrusel 2">
-      <img id="img3" src="CanvaImgs/img3.png" alt="Carrusel 3">
-      <img id="img4" src="CanvaImgs/img4.png" alt="Carrusel 4">
-      <img id="img5" src="CanvaImgs/img5.png" alt="Carrusel 5">
-      <img id="img6" src="CanvaImgs/img6.png" alt="Carrusel 6">
-      <img id="img7" src="CanvaImgs/img7.png" alt="Carrusel 7">
-      <img id="img8" src="CanvaImgs/img8.png" alt="Carrusel 8">
-      <img id="img9" src="CanvaImgs/img9.png" alt="Carrusel 9">
-      <img id="img10" src="CanvaImgs/img10.png" alt="Carrusel 10">
-      <img id="img11" src="CanvaImgs/img11.png" alt="Carrusel 11">
-      <img id="img12" src="CanvaImgs/img12.png" alt="Carrusel 12">
-      <img id="img13" src="CanvaImgs/img13.png" alt="Carrusel 13">
-      <img id="img14" src="CanvaImgs/img14.png" alt="Carrusel 14">
-      <img id="img15" src="CanvaImgs/img15.png" alt="Carrusel 15">
-      <img id="img16" src="CanvaImgs/img16.png" alt="Carrusel 16">
-      <img id="img17" src="CanvaImgs/img17.png" alt="Carrusel 17">
-      <img id="img18" src="CanvaImgs/img18.png" alt="Carrusel 18"> 
-      <img id="24h" src="CanvaImgs/24h.png" alt="Carrusel 24h">
-      
-    </div>
-
-    <div class="bar-container">
-      <div id="bar" class="bar"></div>
-    </div>
-
-    <div class="center">
-      <img id="estadoImg" src="Imagenes/verde.png" alt="Estado de ruido">
-    </div>
-  </div>
-
-  <script>
-    function lerp(a, b, t) { return a + (b - a) * t; }
-    function mixRGB(c1, c2, t) {
-      return [
-        Math.round(lerp(c1[0], c2[0], t)),
-        Math.round(lerp(c1[1], c2[1], t)),
-        Math.round(lerp(c1[2], c2[2], t)),
-      ];
-    }
-    function rgbStr([r,g,b]) { return `rgb(${r}, ${g}, ${b})`; }
-
-    const GREEN  = [0, 255, 0];
-    const YELLOW = [255, 255, 0];
-    const RED    = [255, 0, 0];
-    const MID_BLUE = [77, 124, 138];
-    const BASE_BLUE = [27, 64, 121];
-
-    let blinkInterval = null;
-    function startBlink() {
-      if (blinkInterval) return;
-      let toggle = false;
-      blinkInterval = setInterval(() => {
-        document.body.style.background = toggle 
-          ? 'black' 
-          : 'linear-gradient(to bottom right, red, darkred)';
-        toggle = !toggle;
-      }, 300);
-    }
-    function stopBlink() {
-      if (blinkInterval) {
-        clearInterval(blinkInterval);
-        blinkInterval = null;
-      }
-    }
-
-    (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const audioContext = new AudioCtx();
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        const barEl = document.getElementById('bar');
-        const estadoImg = document.getElementById('estadoImg');
-
-        function frame() {
-          analyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-          const avg = sum / dataArray.length;
-
-          const sensitivity = 2.2;
-          const volume = Math.min(100, (avg / 255) * 100 * sensitivity);
-
-          barEl.style.height = volume + '%';
-
-          let color;
-          if (volume <= 50) color = mixRGB(GREEN, YELLOW, volume / 50);
-          else color = mixRGB(YELLOW, RED, (volume - 50) / 50);
-          barEl.style.background = rgbStr(color);
-
-          if (!blinkInterval) {
-            const bgMix = mixRGB(MID_BLUE, BASE_BLUE, volume / 100);
-            const bgColor = rgbStr(bgMix);
-            document.body.style.background =
-              `linear-gradient(to bottom right, ${bgColor}, #1B4079)`;
-          }
-
-          if (volume <= 40) {
-            if (!estadoImg.src.includes('verde.png')) estadoImg.src = 'Imagenes/verde.png';
-            stopBlink();
-          } else if (volume <= 70) {
-            if (!estadoImg.src.includes('amarillo.png')) estadoImg.src = 'Imagenes/amarillo.png';
-            stopBlink();
-          } else {
-            if (!estadoImg.src.includes('rojo.png')) estadoImg.src = 'Imagenes/rojo.png';
-            startBlink();
-          }
-
-          requestAnimationFrame(frame);
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
         }
 
-        frame();
-      } catch (err) {
-        alert('Error accediendo al micrófono: ' + err.name + ' - ' + err.message +
-              '\n\n🔧 Revisa:\n1. Que uses HTTPS\n2. Que el micrófono esté permitido (candado en la URL)\n3. Que no esté ocupado por otro programa.');
-        console.error(err);
+        const avg = sum / dataArray.length;
+
+        const sensitivity = 2.2;
+
+        const volume = Math.min(
+          100,
+          (avg / 255) * 100 * sensitivity
+        );
+
+        /* ===== Barra ===== */
+
+        barEl.style.height = volume + '%';
+
+        let color;
+
+        if (volume <= 50) {
+
+          color = mixRGB(
+            GREEN,
+            YELLOW,
+            volume / 50
+          );
+
+        } else {
+
+          color = mixRGB(
+            YELLOW,
+            RED,
+            (volume - 50) / 50
+          );
+        }
+
+        barEl.style.background = rgbStr(color);
+
+        /* ===== Fondo ===== */
+
+        if (!blinkInterval) {
+
+          const bgMix = mixRGB(
+            MID_BLUE,
+            BASE_BLUE,
+            volume / 100
+          );
+
+          const bgColor = rgbStr(bgMix);
+
+          document.body.style.background =
+            `linear-gradient(to bottom right, ${bgColor}, #1B4079)`;
+        }
+
+        /* ===== Estado ===== */
+
+        if (volume <= 40) {
+
+          if (!estadoImg.src.includes('verde.png')) {
+            estadoImg.src = 'Imagenes/verde.png';
+          }
+
+          stopBlink();
+
+        } else if (volume <= 70) {
+
+          if (!estadoImg.src.includes('amarillo.png')) {
+            estadoImg.src = 'Imagenes/amarillo.png';
+          }
+
+          stopBlink();
+
+        } else {
+
+          if (!estadoImg.src.includes('rojo.png')) {
+            estadoImg.src = 'Imagenes/rojo.png';
+          }
+
+          startBlink();
+        }
+
+        requestAnimationFrame(frame);
       }
-    })();
 
-    /* ====== Carrusel ====== */
-    const imagenes = [
-      document.getElementById("img1"),
-      document.getElementById("img2"),
-      document.getElementById("img3")
-    ];
-    const carruselBox = document.getElementById("carruselBox");
+      frame();
 
-    let idx = 0;
-    setInterval(() => {
-      imagenes[idx].classList.remove("active");
-      idx = (idx + 1) % imagenes.length;
-      imagenes[idx].classList.add("active");
+    } catch (err) {
 
-      const src = imagenes[idx].getAttribute("src");
-      if (src.endsWith(".png")) {
-        carruselBox.classList.add("transparent");
-      } else {
-        carruselBox.classList.remove("transparent");
-      }
-    }, 30000);
-  </script>
-</body>
-</html>
+      alert(
+        'Error accediendo al micrófono: '
+        + err.name +
+        ' - ' +
+        err.message +
+        '\n\n🔧 Revisa:\n'
+        + '1. Que uses HTTPS\n'
+        + '2. Que el micrófono esté permitido\n'
+        + '3. Que no esté ocupado por otro programa.'
+      );
+
+      console.error(err);
+    }
+
+  })();
+
+  /* =========================
+        CARRUSEL
+  ========================== */
+
+  const imagenes = document.querySelectorAll("#carruselBox img");
+
+  const carruselBox = document.getElementById("carruselBox");
+
+  let idx = 0;
+
+  setInterval(() => {
+
+    /* quitar imagen actual */
+    imagenes[idx].classList.remove("active");
+
+    /* avanzar */
+    idx = (idx + 1) % imagenes.length;
+
+    /* activar nueva */
+    imagenes[idx].classList.add("active");
+
+    /* transparencia */
+    const src = imagenes[idx].getAttribute("src");
+
+    if (src.endsWith(".png")) {
+
+      carruselBox.classList.add("transparent");
+
+    } else {
+
+      carruselBox.classList.remove("transparent");
+    }
+
+  }, 30000);
+</script>

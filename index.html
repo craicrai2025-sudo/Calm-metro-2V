@@ -1,227 +1,453 @@
-<script>
-  function lerp(a, b, t) {
-    return a + (b - a) * t;
-  }
+<!DOCTYPE html>
+<html lang="es">
 
-  function mixRGB(c1, c2, t) {
-    return [
-      Math.round(lerp(c1[0], c2[0], t)),
-      Math.round(lerp(c1[1], c2[1], t)),
-      Math.round(lerp(c1[2], c2[2], t)),
-    ];
-  }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  function rgbStr([r, g, b]) {
-    return `rgb(${r}, ${g}, ${b})`;
-  }
+  <title>Semáforo de Ruido</title>
 
-  const GREEN = [0, 255, 0];
-  const YELLOW = [255, 255, 0];
-  const RED = [255, 0, 0];
-  const MID_BLUE = [77, 124, 138];
-  const BASE_BLUE = [27, 64, 121];
-
-  let blinkInterval = null;
-
-  function startBlink() {
-
-    if (blinkInterval) return;
-
-    let toggle = false;
-
-    blinkInterval = setInterval(() => {
-
-      document.body.style.background = toggle
-        ? 'black'
-        : 'linear-gradient(to bottom right, red, darkred)';
-
-      toggle = !toggle;
-
-    }, 300);
-  }
-
-  function stopBlink() {
-
-    if (blinkInterval) {
-
-      clearInterval(blinkInterval);
-
-      blinkInterval = null;
+  <style>
+    :root {
+      --base-blue: #1B4079;
+      --mid-blue: #4D7C8A;
     }
-  }
 
-  /* =========================
-     MICRÓFONO Y SEMÁFORO
-  ========================== */
+    body {
+      margin: 0;
+      font-family: 'Liberation Sans', Arial, sans-serif;
+      text-align: center;
+      background: linear-gradient(to bottom right, var(--mid-blue), var(--base-blue));
+      transition: background 0.25s ease;
+      overflow: hidden;
+    }
 
-  (async () => {
+    /* ===== HERO ===== */
 
-    try {
+    .hero-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 12px 0 6px;
+      padding: 8px 16px;
+    }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true
-      });
+    .hero {
+      text-align: center;
+    }
 
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    .hero h1 {
+      font-size: clamp(3.2rem, 6vw, 4.2rem);
+      font-weight: 900;
+      color: white;
+      -webkit-text-stroke: 3px black;
+      text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.7);
+      margin: 10px 0;
+    }
 
-      const audioContext = new AudioCtx();
+    .hero h2 {
+      font-size: clamp(4rem, 8vw, 5.2rem);
+      font-weight: 800;
+      color: white;
+      -webkit-text-stroke: 2px black;
+      text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.6);
+      margin: 8px 0;
+    }
 
-      const source = audioContext.createMediaStreamSource(stream);
+    .hero p {
+      font-size: clamp(2.8rem, 6vw, 3.6rem);
+      font-weight: 600;
+      color: white;
+      -webkit-text-stroke: 1.5px black;
+      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+      margin: 6px 0;
+    }
 
-      const analyser = audioContext.createAnalyser();
+    /* ===== LAYOUT ===== */
 
-      analyser.fftSize = 256;
+    .container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 90%;
+      margin: 0 auto 40px auto;
+      min-height: 620px;
+    }
 
-      source.connect(analyser);
+    /* ===== CARRUSEL ===== */
 
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    .carrusel {
+      position: absolute;
+      left: 120px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 650px;
+      height: 900px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
 
-      const barEl = document.getElementById('bar');
+    .carrusel img {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
 
-      const estadoImg = document.getElementById('estadoImg');
+      opacity: 0;
 
-      function frame() {
+      transition: opacity 1s ease;
+    }
 
-        analyser.getByteFrequencyData(dataArray);
+    .carrusel img.active {
+      opacity: 1;
+    }
 
-        let sum = 0;
+    /* ===== BARRA ===== */
 
-        for (let i = 0; i < dataArray.length; i++) {
-          sum += dataArray[i];
-        }
+    .bar-container {
+      position: absolute;
+      right: 170px;
+      top: 50%;
+      transform: translateY(-50%);
 
-        const avg = sum / dataArray.length;
+      width: 90px;
+      height: 700px;
 
-        const sensitivity = 2.2;
+      background: #eeeeee;
 
-        const volume = Math.min(
-          100,
-          (avg / 255) * 100 * sensitivity
-        );
+      border-radius: 22px;
 
-        /* ===== Barra ===== */
+      overflow: hidden;
 
-        barEl.style.height = volume + '%';
+      display: flex;
+      align-items: flex-end;
 
-        let color;
+      box-shadow: inset 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
 
-        if (volume <= 50) {
+    .bar {
+      width: 100%;
+      height: 0%;
+      background: green;
+      transition: height 0.1s linear,
+        background 0.1s linear;
+    }
 
-          color = mixRGB(
-            GREEN,
-            YELLOW,
-            volume / 50
-          );
+    /* ===== IMAGEN CENTRAL ===== */
 
-        } else {
+    .center {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-          color = mixRGB(
-            YELLOW,
-            RED,
-            (volume - 50) / 50
-          );
-        }
+    #estadoImg {
+      width: 630px;
+      max-width: 90vw;
+      height: auto;
+    }
+  </style>
+</head>
 
-        barEl.style.background = rgbStr(color);
+<body>
 
-        /* ===== Fondo ===== */
+  <!-- ===== HERO ===== -->
 
-        if (!blinkInterval) {
+  <div class="hero-wrap">
 
-          const bgMix = mixRGB(
-            MID_BLUE,
-            BASE_BLUE,
-            volume / 100
-          );
+    <div class="hero">
 
-          const bgColor = rgbStr(bgMix);
+      <h1>Bienvenidas y bienvenidos al CRAI UR</h1>
 
-          document.body.style.background =
-            `linear-gradient(to bottom right, ${bgColor}, #1B4079)`;
-        }
+      <h2>Calmómetro</h2>
 
-        /* ===== Estado ===== */
+      <p>Bájale al ruido, súbele a la concentración</p>
 
-        if (volume <= 40) {
+    </div>
 
-          if (!estadoImg.src.includes('verde.png')) {
-            estadoImg.src = 'Imagenes/verde.png';
-          }
+  </div>
 
-          stopBlink();
+  <!-- ===== CONTENIDO ===== -->
 
-        } else if (volume <= 70) {
+  <div class="container">
 
-          if (!estadoImg.src.includes('amarillo.png')) {
-            estadoImg.src = 'Imagenes/amarillo.png';
-          }
+    <!-- ===== CARRUSEL ===== -->
 
-          stopBlink();
+    <div class="carrusel" id="carruselBox">
 
-        } else {
+      <img src="CanvaImgs/img1.png" class="active">
+      <img src="CanvaImgs/img2.png">
+      <img src="CanvaImgs/img3.png">
+      <img src="CanvaImgs/img4.png">
+      <img src="CanvaImgs/img5.png">
+      <img src="CanvaImgs/img6.png">
+      <img src="CanvaImgs/img7.png">
+      <img src="CanvaImgs/img8.png">
+      <img src="CanvaImgs/img9.png">
+      <img src="CanvaImgs/img10.png">
+      <img src="CanvaImgs/img11.png">
+      <img src="CanvaImgs/img12.png">
+      <img src="CanvaImgs/img13.png">
+      <img src="CanvaImgs/img14.png">
+      <img src="CanvaImgs/img15.png">
+      <img src="CanvaImgs/img16.png">
+      <img src="CanvaImgs/img17.png">
+      <img src="CanvaImgs/img18.png">
+      <img src="CanvaImgs/24h.png">
 
-          if (!estadoImg.src.includes('rojo.png')) {
-            estadoImg.src = 'Imagenes/rojo.png';
-          }
+    </div>
 
-          startBlink();
-        }
+    <!-- ===== BARRA ===== -->
 
-        requestAnimationFrame(frame);
+    <div class="bar-container">
+
+      <div id="bar" class="bar"></div>
+
+    </div>
+
+    <!-- ===== IMAGEN CENTRAL ===== -->
+
+    <div class="center">
+
+      <img
+        id="estadoImg"
+        src="Imagenes/verde.png"
+        alt="Estado">
+
+    </div>
+
+  </div>
+
+  <!-- ===== JAVASCRIPT ===== -->
+
+  <script>
+
+    /* =========================
+       UTILIDADES
+    ========================== */
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function mixRGB(c1, c2, t) {
+
+      return [
+
+        Math.round(lerp(c1[0], c2[0], t)),
+        Math.round(lerp(c1[1], c2[1], t)),
+        Math.round(lerp(c1[2], c2[2], t))
+
+      ];
+    }
+
+    function rgbStr([r, g, b]) {
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    const GREEN = [0, 255, 0];
+    const YELLOW = [255, 255, 0];
+    const RED = [255, 0, 0];
+
+    const MID_BLUE = [77, 124, 138];
+    const BASE_BLUE = [27, 64, 121];
+
+    /* =========================
+       PARPADEO
+    ========================== */
+
+    let blinkInterval = null;
+
+    function startBlink() {
+
+      if (blinkInterval) return;
+
+      let toggle = false;
+
+      blinkInterval = setInterval(() => {
+
+        document.body.style.background =
+          toggle
+            ? 'black'
+            : 'linear-gradient(to bottom right, red, darkred)';
+
+        toggle = !toggle;
+
+      }, 300);
+    }
+
+    function stopBlink() {
+
+      if (blinkInterval) {
+
+        clearInterval(blinkInterval);
+
+        blinkInterval = null;
       }
-
-      frame();
-
-    } catch (err) {
-
-      alert(
-        'Error accediendo al micrófono: '
-        + err.name +
-        ' - ' +
-        err.message +
-        '\n\n🔧 Revisa:\n'
-        + '1. Que uses HTTPS\n'
-        + '2. Que el micrófono esté permitido\n'
-        + '3. Que no esté ocupado por otro programa.'
-      );
-
-      console.error(err);
     }
 
-  })();
+    /* =========================
+       CARRUSEL
+    ========================== */
 
-  /* =========================
-        CARRUSEL
-  ========================== */
+    const imagenes =
+      document.querySelectorAll("#carruselBox img");
 
-  const imagenes = document.querySelectorAll("#carruselBox img");
+    let idx = 0;
 
-  const carruselBox = document.getElementById("carruselBox");
+    setInterval(() => {
 
-  let idx = 0;
+      imagenes[idx].classList.remove("active");
 
-  setInterval(() => {
+      idx = (idx + 1) % imagenes.length;
 
-    /* quitar imagen actual */
-    imagenes[idx].classList.remove("active");
+      imagenes[idx].classList.add("active");
 
-    /* avanzar */
-    idx = (idx + 1) % imagenes.length;
+    }, 30000);
 
-    /* activar nueva */
-    imagenes[idx].classList.add("active");
+    /* =========================
+       MICRÓFONO
+    ========================== */
 
-    /* transparencia */
-    const src = imagenes[idx].getAttribute("src");
+    async function iniciarMicrofono() {
 
-    if (src.endsWith(".png")) {
+      try {
 
-      carruselBox.classList.add("transparent");
+        const stream =
+          await navigator.mediaDevices.getUserMedia({
+            audio: true
+          });
 
-    } else {
+        const AudioCtx =
+          window.AudioContext ||
+          window.webkitAudioContext;
 
-      carruselBox.classList.remove("transparent");
+        const audioContext = new AudioCtx();
+
+        const source =
+          audioContext.createMediaStreamSource(stream);
+
+        const analyser =
+          audioContext.createAnalyser();
+
+        analyser.fftSize = 256;
+
+        source.connect(analyser);
+
+        const dataArray =
+          new Uint8Array(analyser.frequencyBinCount);
+
+        const barEl =
+          document.getElementById("bar");
+
+        const estadoImg =
+          document.getElementById("estadoImg");
+
+        function frame() {
+
+          analyser.getByteFrequencyData(dataArray);
+
+          let sum = 0;
+
+          for (let i = 0; i < dataArray.length; i++) {
+
+            sum += dataArray[i];
+          }
+
+          const avg = sum / dataArray.length;
+
+          const sensitivity = 2.2;
+
+          const volume = Math.min(
+            100,
+            (avg / 255) * 100 * sensitivity
+          );
+
+          /* ===== BARRA ===== */
+
+          barEl.style.height = volume + "%";
+
+          let color;
+
+          if (volume <= 50) {
+
+            color = mixRGB(
+              GREEN,
+              YELLOW,
+              volume / 50
+            );
+
+          } else {
+
+            color = mixRGB(
+              YELLOW,
+              RED,
+              (volume - 50) / 50
+            );
+          }
+
+          barEl.style.background = rgbStr(color);
+
+          /* ===== FONDO ===== */
+
+          if (!blinkInterval) {
+
+            const bgMix = mixRGB(
+              MID_BLUE,
+              BASE_BLUE,
+              volume / 100
+            );
+
+            const bgColor = rgbStr(bgMix);
+
+            document.body.style.background =
+              `linear-gradient(to bottom right, ${bgColor}, #1B4079)`;
+          }
+
+          /* ===== IMAGEN ===== */
+
+          if (volume <= 40) {
+
+            estadoImg.src = "Imagenes/verde.png";
+
+            stopBlink();
+
+          } else if (volume <= 70) {
+
+            estadoImg.src = "Imagenes/amarillo.png";
+
+            stopBlink();
+
+          } else {
+
+            estadoImg.src = "Imagenes/rojo.png";
+
+            startBlink();
+          }
+
+          requestAnimationFrame(frame);
+        }
+
+        frame();
+
+      } catch (err) {
+
+        console.error(err);
+
+        alert(
+          "Error accediendo al micrófono:\n\n" +
+          err.message
+        );
+      }
     }
 
-  }, 30000);
-</script>
+    iniciarMicrofono();
+
+  </script>
+
+</body>
+
+</html>
